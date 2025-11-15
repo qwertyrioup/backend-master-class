@@ -20,7 +20,7 @@ app.use('/api/users', userRoutes);
 app.get('/', (req: Request, res: Response, next: NextFunction) => {
     res.json({
         success: true,
-        message: "Hello World",
+        message: "Hello World ❤️",
     });
 });
 
