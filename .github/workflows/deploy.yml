@@ -35,26 +35,46 @@ jobs:
           JWT_SECRET=mohamedmajri
           EOF
 
+      - name: Setup SSH key
+        run: |
+          mkdir -p $HOME/.ssh
+          # Write SSH key with proper formatting (preserve newlines)
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > $HOME/.ssh/deploy_key
+          chmod 600 $HOME/.ssh/deploy_key
+          # Verify key format
+          echo "Checking SSH key format..."
+          head -1 $HOME/.ssh/deploy_key
+          # Add server to known_hosts
+          ssh-keyscan -p ${{ secrets.SERVER_PORT || 22 }} ${{ secrets.SERVER_HOST }} >> $HOME/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Test SSH connection
+        run: |
+          # Test SSH connection (will fail if key doesn't match, but that's ok - the action will handle it)
+          echo "Testing SSH connection..."
+          ssh -i $HOME/.ssh/deploy_key -p ${{ secrets.SERVER_PORT || 22 }} -o StrictHostKeyChecking=no -o ConnectTimeout=5 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "echo 'SSH connection successful'" || echo "SSH test completed (may fail if passphrase is required)"
+
       - name: Deploy to server via SSH
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key_path: $HOME/.ssh/deploy_key
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           port: ${{ secrets.SERVER_PORT || 22 }}
           source: "deploy/*"
           target: "/opt/backend"
           strip_components: 1
+          debug: true
 
       - name: SSH into server and deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key_path: $HOME/.ssh/deploy_key
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           port: ${{ secrets.SERVER_PORT || 22 }}
+          debug: true
           script: |
             cd /opt/backend
             # Verify .env file exists
