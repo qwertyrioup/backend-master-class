@@ -1,0 +1,18 @@
+
+
+services:
+  backend:
+    container_name: backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    env_file:
+      - .env
+    networks:
+      - backend-network
+
+networks:
+  backend-network:
+    driver: bridge
